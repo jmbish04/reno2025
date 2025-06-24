@@ -1,812 +1,303 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Photo Gallery</title>
-    <!-- Flowbite and Tailwind CSS CDN -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc; /* Light gray background */
-        }
-        .container {
-            max-width: 1200px;
-            margin: auto;
-            padding: 2rem;
-        }
-        /* Custom spinner for better visibility */
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #6366f1;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        /* Canvas specific styling for drawing area */
-        #inpaintingCanvas {
-            border: 1px dashed #6366f1;
-            cursor: crosshair;
-            margin-bottom: 1rem;
-            max-width: 100%; /* Ensure canvas scales */
-            height: auto; /* Maintain aspect ratio */
-            display: block; /* Remove extra space below canvas */
-        }
-        /* Custom styles for the gallery grid to mimic bento box layout */
-        .bento-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
-        .bento-item {
-            position: relative;
-            overflow: hidden;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s ease-in-out;
-            cursor: pointer;
-        }
-        .bento-item:hover {
-            transform: translateY(-5px);
-        }
-        .bento-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-        .bento-item-overlay {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
-            color: white;
-            padding: 0.75rem;
-            font-size: 0.875rem;
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-        }
-        .bento-item:hover .bento-item-overlay {
-            opacity: 1;
-        }
-        .bento-item-overlay .title {
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-        .bento-item-overlay .description {
-            font-size: 0.75rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        /* Specific sizes for bento box effect */
-        .bento-item-large {
-            grid-column: span 2;
-            grid-row: span 2;
-        }
-        .bento-item-tall {
-            grid-row: span 2;
-        }
-        .bento-item-wide {
-            grid-column: span 2;
-        }
-        /* Adjustments for Flowbite modal */
-        #inpaintingModal {
-            max-width: 90vw !important;
-            max-height: 90vh !important;
-        }
-        #inpaintingModal .relative {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-        #inpaintingModal .modal-body {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 1.5rem;
-        }
-        #inpaintingModal .modal-footer {
-            padding: 1rem 1.5rem;
-            border-top: 1px solid #e5e7eb;
-        }
-    </style>
-</head>
-<body class="bg-gray-50 text-gray-800">
-    <div class="container py-8">
-        <h1 class="text-4xl font-bold text-center mb-10 text-indigo-700">AI Photo Gallery</h1>
 
-        <!-- Search Section -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8 flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
-            <input type="text" id="searchQueryInput" placeholder="Search photos by description or category (e.g., 'dog in kitchen')"
-                   class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-            <button id="searchPhotosBtn" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md transition duration-300 w-full md:w-auto">
-                Search Photos
-            </button>
-        </div>
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>AI Photo Gallery</title>
+                <!-- Tailwind CSS CDN -->
+                <script src="https://cdn.tailwindcss.com"></script>
+                <style>
+                    body {
+                        font-family: 'Inter', sans-serif;
+                        background-color: #f8fafc; /* Light gray background */
+                    }
+                    .container {
+                        max-width: 1200px;
+                        margin: auto;
+                        padding: 2rem;
+                    }
+                    .section-title {
+                        border-bottom: 2px solid #e2e8f0; /* Light border */
+                        padding-bottom: 0.5rem;
+                        margin-bottom: 1.5rem;
+                    }
+                    .gallery-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                        gap: 1.5rem;
+                    }
+                    .photo-card {
+                        background-color: #ffffff;
+                        border-radius: 0.75rem; /* Rounded corners */
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                        overflow: hidden;
+                        transition: transform 0.2s ease-in-out;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        padding: 1rem;
+                    }
+                    .photo-card:hover {
+                        transform: translateY(-5px);
+                    }
+                    .photo-card img {
+                        width: 100%;
+                        height: 200px; /* Fixed height for consistency */
+                        object-fit: cover;
+                        border-radius: 0.5rem; /* Slightly smaller rounded corners for image */
+                        margin-bottom: 1rem;
+                    }
+                    .photo-card p {
+                        font-size: 0.9rem;
+                        color: #4a5568;
+                        text-align: center;
+                        word-break: break-word; /* Ensure long words break */
+                    }
+                    .photo-card button {
+                        margin-top: 0.75rem;
+                        padding: 0.5rem 1rem;
+                        font-size: 0.875rem;
+                        border-radius: 0.5rem;
+                        background-color: #6366f1; /* Indigo */
+                        color: white;
+                        transition: background-color 0.2s ease-in-out;
+                    }
+                    .photo-card button:hover {
+                        background-color: #4f46e5; /* Darker indigo */
+                    }
+                    .inpainting-form, .inpainting-result {
+                        background-color: #ffffff;
+                        border-radius: 0.75rem;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                        padding: 2rem;
+                        margin-top: 2rem;
+                    }
+                    .spinner {
+                        border: 4px solid rgba(0, 0, 0, 0.1);
+                        border-left-color: #6366f1;
+                        border-radius: 50%;
+                        width: 24px;
+                        height: 24px;
+                        animation: spin 1s linear infinite;
+                    }
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                </style>
+            </head>
+            <body class="bg-gray-50 text-gray-800">
+                <div class="container py-8">
+                    <h1 class="text-4xl font-bold text-center mb-10 text-indigo-700">AI Photo Gallery</h1>
 
-        <!-- Action Buttons -->
-        <div class="flex justify-center space-x-4 mb-8">
-            <button id="analyzePhotosBtn" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-md transition duration-300">
-                Analyze All Photos
-            </button>
-            <button id="refreshGalleryBtn" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition duration-300">
-                Refresh Gallery
-            </button>
-        </div>
-
-        <!-- Room/Category Tabs -->
-        <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
-            <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="roomTabs" role="tablist">
-                <!-- Tabs will be dynamically generated here -->
-            </ul>
-        </div>
-
-        <div id="loading" class="flex justify-center items-center h-20 hidden">
-            <div class="spinner"></div>
-            <p class="ml-3 text-lg text-gray-600">Loading photos...</p>
-        </div>
-
-        <!-- Photo Gallery (Bento Box Layout) -->
-        <div id="gallery-container" class="space-y-8">
-            <!-- Galleries for each room will be rendered here -->
-        </div>
-
-        <!-- Section for Rendered/Inpainted Images -->
-        <h2 class="text-3xl font-bold text-center mb-6 mt-12 text-purple-700">Generated Images</h2>
-        <p class="text-center text-gray-600 mb-8">Review images generated by DALL-E 3.</p>
-        <div id="generated-gallery-container" class="bento-grid">
-            <p class="text-center text-gray-500 col-span-full" id="no-generated-images">No generated images yet.</p>
-        </div>
-
-
-        <!-- Inpainting Modal -->
-        <div id="inpaintingModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-            <div class="relative p-4 w-full max-w-4xl max-h-full">
-                <!-- Modal content -->
-                <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-                    <!-- Modal header -->
-                    <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
-                            DALL-E 3 Inpainting Wizard
-                        </h3>
-                        <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="inpaintingModal">
-                            <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
-                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 6 6-6M7 7l6 6"/>
-                            </svg>
-                            <span class="sr-only">Close modal</span>
+                    <!-- Action Buttons -->
+                    <div class="flex justify-center space-x-4 mb-8">
+                        <button id="analyzePhotosBtn" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-md transition duration-300">
+                            Analyze All Photos
+                        </button>
+                        <button id="refreshGalleryBtn" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition duration-300">
+                            Refresh Gallery
                         </button>
                     </div>
-                    <!-- Modal body -->
-                    <div class="modal-body p-4 md:p-5">
-                        <!-- Stepper -->
-                        <ol class="relative text-gray-500 border-s border-gray-200 dark:border-gray-700 dark:text-gray-400 mb-6">
-                            <li class="mb-10 ms-6" id="wizardStep1">
-                                <span class="absolute flex items-center justify-center w-8 h-8 bg-green-200 rounded-full -start-4 ring-4 ring-white dark:ring-gray-900 dark:bg-green-900">
-                                    <svg class="w-3.5 h-3.5 text-green-500 dark:text-green-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 12">
-                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 5.917 5.724 10.5 15 1.5"/>
-                                    </svg>
-                                </span>
-                                <h3 class="font-medium leading-tight">1. Select Photo & Prompt</h3>
-                                <p class="text-sm">Verify your selected photo and enter your inpainting request.</p>
-                                <div class="mt-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-600 dark:border-gray-500">
-                                    <h4 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">Selected Image:</h4>
-                                    <img id="modalSelectedImage" src="" alt="Selected Photo" class="max-h-64 object-contain mx-auto rounded-lg shadow-md mb-4">
-                                    <p class="text-center text-gray-600 dark:text-gray-300" id="modalSelectedImageName"></p>
-                                    <label for="inpaintingPrompt" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white mt-4">Inpainting Prompt:</label>
-                                    <textarea id="inpaintingPrompt"
-                                              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 resize-y dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
-                                              rows="4"
-                                              placeholder="Describe what you want to add or change (e.g., 'a small red ball on the table', 'remove the lamp'). Be descriptive!"></textarea>
-                                    <button type="button" id="nextStep2" class="mt-4 px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Next</button>
+
+                    <div id="loading" class="flex justify-center items-center h-20 hidden">
+                        <div class="spinner"></div>
+                        <p class="ml-3 text-lg text-gray-600">Loading photos...</p>
+                    </div>
+                    <div id="gallery-container" class="space-y-8">
+                        <!-- Photos will be dynamically loaded here, grouped by room -->
+                    </div>
+
+                    <!-- Inpainting Section -->
+                    <div class="inpainting-form mt-12">
+                        <h2 class="text-2xl font-semibold mb-4 section-title text-indigo-600">Photo Inpainting (DALL-E 3)</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h3 class="text-xl font-medium mb-3 text-gray-700">Original Image Selection</h3>
+                                <div id="inpainting-image-selection" class="gallery-grid">
+                                    <p class="text-gray-500">Select an image from the gallery above to enable inpainting.</p>
+                                    <!-- Selected image will appear here -->
                                 </div>
-                            </li>
-                            <li class="mb-10 ms-6" id="wizardStep2">
-                                <span class="absolute flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full -start-4 ring-4 ring-white dark:ring-gray-900 dark:bg-gray-700">
-                                    <svg class="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 16">
-                                        <path d="M18 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2ZM6.5 3a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3.014 13.021l.157-.625A3.427 3.427 0 0 1 6.5 9.571a3.426 3.426 0 0 1 3.322 2.805l.159.622-6.967.023ZM16 12h-3a1 1 0 0 1 0-2h3a1 1 0 0 1 0 2Zm0-3h-3a1 1 0 1 1 0-2h3a1 1 0 1 1 0 2Zm0-3h-3a1 1 0 1 1 0-2h3a1 1 0 1 1 0 2Z"/>
-                                    </svg>
-                                </span>
-                                <h3 class="font-medium leading-tight">2. Select Area (Visual Aid)</h3>
-                                <p class="text-sm">Highlight the area of interest. This is a visual aid for your prompt.</p>
-                                <div class="mt-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-600 dark:border-gray-500">
-                                    <div id="inpainting-canvas-container" class="relative bg-gray-100 flex justify-center items-center rounded-lg shadow-inner" style="min-height: 250px;">
-                                        <canvas id="inpaintingCanvasWizard" class="hidden"></canvas>
-                                        <p id="inpaintingPlaceholderWizard" class="text-gray-500 p-4">Loading image for selection...</p>
-                                    </div>
-                                    <div class="flex justify-between mt-4">
-                                        <button type="button" id="prevStep1" class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">Previous</button>
-                                        <button type="button" id="nextStep3" class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Generate Image</button>
-                                    </div>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-medium mb-3 text-gray-700">Inpainting Prompt</h3>
+                                <textarea id="inpaintingPrompt"
+                                          class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 resize-y"
+                                          rows="4"
+                                          placeholder="Describe what you want to add or change in the image (e.g., 'a small red ball on the table', 'remove the lamp'). Be descriptive!"></textarea>
+                                <button id="generateInpaintingBtn"
+                                        class="w-full mt-4 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-md transition duration-300"
+                                        disabled>
+                                    Generate Inpainted Image
+                                </button>
+                                <div id="inpaintingLoading" class="flex justify-center items-center h-16 hidden mt-4">
+                                    <div class="spinner"></div>
+                                    <p class="ml-3 text-base text-gray-600">Generating image...</p>
                                 </div>
-                            </li>
-                            <li class="mb-10 ms-6" id="wizardStep3">
-                                <span class="absolute flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full -start-4 ring-4 ring-white dark:ring-gray-900 dark:bg-gray-700">
-                                    <svg class="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 18 20">
-                                        <path d="M16 1h-3.278A1.992 1.992 0 0 0 11 0H7a1.993 1.993 0 0 0-1.722 1H2a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2Zm-3 14H5a1 1 0 0 1 0-2h8a1 1 0 0 1 0 2Zm0-4H5a1 1 0 0 1 0-2h8a1 1 0 1 1 0 2Zm0-5H5a1 1 0 0 1 0-2h2V2h4v2h2a1 1 0 1 1 0 2Z"/>
-                                    </svg>
-                                </span>
-                                <h3 class="font-medium leading-tight">3. Generating Image...</h3>
-                                <p class="text-sm">Please wait while DALL-E 3 creates your image.</p>
-                                <div class="mt-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-600 dark:border-gray-500 flex flex-col items-center justify-center min-h-[200px]">
-                                    <div id="inpaintingLoadingSpinner" class="spinner hidden"></div>
-                                    <p id="inpaintingLoadingText" class="ml-3 text-lg text-gray-600 dark:text-gray-300 mt-2">Generating image...</p>
-                                    <div id="inpaintingResultDiv" class="hidden w-full text-center">
-                                        <h4 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">Generated Image:</h4>
-                                        <img id="generatedImage" src="" alt="Generated Inpainted Image" class="w-full h-auto rounded-lg shadow-md mx-auto mb-4 max-h-96 object-contain">
-                                    </div>
-                                    <div class="flex justify-between w-full mt-4">
-                                        <button type="button" id="prevStep2" class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">Previous</button>
-                                        <button type="button" id="saveGeneratedImageBtn" class="px-5 py-2.5 text-sm font-medium text-white bg-purple-700 rounded-lg hover:bg-purple-800 focus:ring-4 focus:ring-purple-300 dark:bg-purple-600 dark:hover:bg-purple-700 dark:focus:ring-purple-800 hidden">Save Image</button>
-                                        <button type="button" id="closeModalBtn" class="px-5 py-2.5 text-sm font-medium text-white bg-gray-500 rounded-lg hover:bg-gray-600 focus:ring-4 focus:ring-gray-300 dark:bg-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-800">Close</button>
-                                    </div>
+                                <div id="inpaintingResult" class="inpainting-result hidden mt-6">
+                                    <h3 class="text-xl font-medium mb-3 text-gray-700">Generated Image</h3>
+                                    <img id="generatedImage" src="" alt="Generated Inpainted Image" class="w-full h-auto rounded-lg shadow-md">
                                 </div>
-                            </li>
-                        </ol>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Flowbite JS CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
-    <script>
-        // Flowbite components initialization
-        const { Modal, Tabs } = Flowbite;
+                <script>
+                    const galleryContainer = document.getElementById('gallery-container');
+                    const loadingSpinner = document.getElementById('loading');
+                    const analyzePhotosBtn = document.getElementById('analyzePhotosBtn');
+                    const refreshGalleryBtn = document.getElementById('refreshGalleryBtn');
+                    const inpaintingImageSelection = document.getElementById('inpainting-image-selection');
+                    const inpaintingPromptInput = document.getElementById('inpaintingPrompt');
+                    const generateInpaintingBtn = document.getElementById('generateInpaintingBtn');
+                    const inpaintingLoading = document.getElementById('inpaintingLoading');
+                    const inpaintingResultDiv = document.getElementById('inpaintingResult');
+                    const generatedImageElem = document.getElementById('generatedImage');
 
-        // Get elements
-        const galleryContainer = document.getElementById('gallery-container');
-        const generatedGalleryContainer = document.getElementById('generated-gallery-container');
-        const noGeneratedImagesPlaceholder = document.getElementById('no-generated-images');
-        const loadingSpinner = document.getElementById('loading');
-        const analyzePhotosBtn = document.getElementById('analyzePhotosBtn');
-        const refreshGalleryBtn = document.getElementById('refreshGalleryBtn');
-        const searchQueryInput = document.getElementById('searchQueryInput');
-        const searchPhotosBtn = document.getElementById('searchPhotosBtn');
+                    let selectedImageUrl = null;
+                    let selectedImageKey = null;
 
-        // Inpainting Modal Elements
-        const inpaintingModalElement = document.getElementById('inpaintingModal');
-        const modalSelectedImage = document.getElementById('modalSelectedImage');
-        const modalSelectedImageName = document.getElementById('modalSelectedImageName');
-        const inpaintingPromptInput = document.getElementById('inpaintingPrompt');
-        const inpaintingCanvasWizard = document.getElementById('inpaintingCanvasWizard');
-        const inpaintingPlaceholderWizard = document.getElementById('inpaintingPlaceholderWizard');
-        const inpaintingLoadingSpinner = document.getElementById('inpaintingLoadingSpinner');
-        const inpaintingLoadingText = document.getElementById('inpaintingLoadingText');
-        const inpaintingResultDiv = document.getElementById('inpaintingResultDiv');
-        const generatedImageElem = document.getElementById('generatedImage');
-        const saveGeneratedImageBtn = document.getElementById('saveGeneratedImageBtn');
-        const closeModalBtn = document.getElementById('closeModalBtn');
-
-        // Wizard Navigation Buttons
-        const nextStep2Btn = document.getElementById('nextStep2');
-        const prevStep1Btn = document.getElementById('prevStep1');
-        const nextStep3Btn = document.getElementById('nextStep3');
-        const prevStep2Btn = document.getElementById('prevStep2');
-
-        const wizardStep1 = document.getElementById('wizardStep1');
-        const wizardStep2 = document.getElementById('wizardStep2');
-        const wizardStep3 = document.getElementById('wizardStep3');
-
-        const ctxWizard = inpaintingCanvasWizard.getContext('2d');
-        let selectedOriginalImage = new Image(); // To hold the currently selected image
-        let selectedImageUrl = null;
-        let selectedImageKey = null;
-        let currentGeneratedImageUrl = null; // Store the URL of the generated image temporarily
-
-        let isDrawing = false;
-        let startX, startY;
-        let rect = {}; // Holds the drawn rectangle coordinates
-
-        // Flowbite Modal instance
-        const inpaintingModal = new Modal(inpaintingModalElement, {
-            closable: true,
-            onHide: () => {
-                resetInpaintingWizard(); // Reset wizard state when modal closes
-            }
-        });
-
-        let currentWizardStep = 1;
-
-        function showWizardStep(step) {
-            wizardStep1.classList.add('hidden');
-            wizardStep2.classList.add('hidden');
-            wizardStep3.classList.add('hidden');
-
-            // Reset stepper icons/colors (Flowbite default behavior)
-            document.querySelectorAll('.relative.text-gray-500 span').forEach(span => {
-                span.classList.remove('bg-green-200', 'dark:bg-green-900');
-                span.classList.add('bg-gray-100', 'dark:bg-gray-700');
-                span.querySelector('svg path').setAttribute('stroke', 'currentColor');
-                span.querySelector('svg').classList.remove('text-green-500', 'dark:text-green-400');
-                span.querySelector('svg').classList.add('text-gray-500', 'dark:text-gray-400');
-            });
-            document.querySelectorAll('.relative.text-gray-500 svg').forEach(svg => {
-                 // Remove fill attribute to use current color for non-completed steps
-                svg.removeAttribute('fill');
-                svg.querySelector('path').removeAttribute('d');
-            });
-
-
-            const currentStepSpan = document.querySelector(`#wizardStep${step} span`);
-            currentStepSpan.classList.remove('bg-gray-100', 'dark:bg-gray-700');
-            currentStepSpan.classList.add('bg-green-200', 'dark:bg-green-900');
-            const currentStepSvg = currentStepSpan.querySelector('svg');
-            currentStepSvg.classList.remove('text-gray-500', 'dark:text-gray-400');
-            currentStepSvg.classList.add('text-green-500', 'dark:text-green-400');
-            currentStepSvg.setAttribute('fill', 'none'); // Ensure default is no fill for checkmark
-
-            // For completed steps, change icon to checkmark
-            for (let i = 1; i < step; i++) {
-                const prevStepSpan = document.querySelector(`#wizardStep${i} span`);
-                const prevStepSvg = prevStepSpan.querySelector('svg');
-                prevStepSvg.setAttribute('fill', 'none');
-                prevStepSvg.querySelector('path').setAttribute('d', 'M1 5.917 5.724 10.5 15 1.5');
-            }
-
-
-            switch (step) {
-                case 1:
-                    wizardStep1.classList.remove('hidden');
-                    // Reset selected image and canvas when going back to step 1
-                    inpaintingCanvasWizard.classList.add('hidden');
-                    inpaintingPlaceholderWizard.classList.remove('hidden');
-                    inpaintingPromptInput.value = '';
-                    modalSelectedImage.src = '';
-                    modalSelectedImageName.textContent = '';
-                    break;
-                case 2:
-                    wizardStep2.classList.remove('hidden');
-                    // Load image to canvas when entering step 2
-                    if (selectedImageUrl) {
-                        loadSelectedImageToCanvas(selectedImageUrl);
+                    async function fetchGalleryData() {
+                        loadingSpinner.classList.remove('hidden');
+                        galleryContainer.innerHTML = '';
+                        try {
+                            const response = await fetch('/api/gallery-data');
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            const photos = await response.json();
+                            renderGallery(photos);
+                        } catch (error) {
+                            console.error('Error fetching gallery data:', error);
+                            galleryContainer.innerHTML = `<p class="text-center text-red-600">Failed to load photos. Please ensure your Cloudflare Worker is running and configured correctly. Error: ${error.message}</p>`;
+                        } finally {
+                            loadingSpinner.classList.add('hidden');
+                        }
                     }
-                    break;
-                case 3:
-                    wizardStep3.classList.remove('hidden');
-                    inpaintingLoadingSpinner.classList.remove('hidden');
-                    inpaintingLoadingText.classList.remove('hidden');
-                    inpaintingResultDiv.classList.add('hidden');
-                    saveGeneratedImageBtn.classList.add('hidden');
-                    generateInpaintedImage(); // Trigger generation when entering step 3
-                    break;
-            }
-            currentWizardStep = step;
-        }
 
-        function resetInpaintingWizard() {
-            selectedImageUrl = null;
-            selectedImageKey = null;
-            currentGeneratedImageUrl = null;
-            inpaintingPromptInput.value = '';
-            showWizardStep(1); // Go back to the first step
-        }
+                    function renderGallery(photos) {
+                        const groupedPhotos = photos.reduce((acc, photo) => {
+                            const room = photo.room || 'Uncategorized';
+                            if (!acc[room]) {
+                                acc[room] = [];
+                            }
+                            acc[room].push(photo);
+                            return acc;
+                        }, {});
 
+                        galleryContainer.innerHTML = '';
 
-        // Function to fetch gallery data from the worker
-        async function fetchGalleryData(searchQuery = '') {
-            loadingSpinner.classList.remove('hidden');
-            galleryContainer.innerHTML = ''; // Clear existing photos
-            generatedGalleryContainer.innerHTML = ''; // Clear existing generated photos
-            noGeneratedImagesPlaceholder.classList.remove('hidden'); // Show placeholder by default
+                        for (const room in groupedPhotos) {
+                            const roomSection = document.createElement('div');
+                            roomSection.className = 'mb-8';
+                            roomSection.innerHTML = `
+                                <h2 class="text-2xl font-semibold mb-4 section-title text-indigo-600">\${room}</h2>
+                                <div class="gallery-grid" id="room-\${room.replace(/\s+/g, '-').toLowerCase()}"></div>
+                            `;
+                            galleryContainer.appendChild(roomSection);
 
-            try {
-                let url = '/api/gallery-data';
-                if (searchQuery) {
-                    url = `/api/search-photos?query=${encodeURIComponent(searchQuery)}`;
-                }
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const photos = await response.json();
-                renderGallery(photos);
-            } catch (error) {
-                console.error('Error fetching gallery data:', error);
-                galleryContainer.innerHTML = `<p class="text-center text-red-600 col-span-full">Failed to load photos. Please ensure your Cloudflare Worker is running and configured correctly. Error: ${error.message}</p>`;
-            } finally {
-                loadingSpinner.classList.add('hidden');
-            }
-        }
+                            const roomGrid = roomSection.querySelector('.gallery-grid');
+                            groupedPhotos[room].forEach(photo => {
+                                const card = document.createElement('div');
+                                card.className = 'photo-card';
+                                card.innerHTML = `
+                                    <img src="\${photo.publicUrl}" alt="\${photo.key}" class="w-full h-48 object-cover rounded-lg mb-4 cursor-pointer" data-image-url="\${photo.publicUrl}" data-image-key="\${photo.key}">
+                                    <p class="text-sm font-medium text-gray-700 mb-2">\${photo.key.split('/').pop()}</p>
+                                    <p class="text-xs text-gray-600">\${photo.analysis?.description || 'No description available.'}</p>
+                                    <button class="select-image-btn px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm mt-3" data-image-url="\${photo.publicUrl}" data-image-key="\${photo.key}">
+                                        Select for Inpainting
+                                    </button>
+                                `;
+                                roomGrid.appendChild(card);
+                            });
+                        }
 
-        // Function to render the gallery grouped by room and generated images
-        function renderGallery(photos) {
-            const originalPhotos = photos.filter(p => p.type !== 'generated');
-            const generatedPhotos = photos.filter(p => p.type === 'generated');
+                        document.querySelectorAll('.select-image-btn').forEach(button => {
+                            button.addEventListener('click', (event) => {
+                                selectedImageUrl = event.target.dataset.imageUrl;
+                                selectedImageKey = event.target.dataset.imageKey;
+                                inpaintingImageSelection.innerHTML = `
+                                    <div class="photo-card p-4">
+                                        <img src="\${selectedImageUrl}" alt="Selected for Inpainting" class="w-full h-48 object-cover rounded-lg mb-4">
+                                        <p class="text-sm font-medium text-gray-700">Selected: \${selectedImageKey.split('/').pop()}</p>
+                                    </div>
+                                `;
+                                generateInpaintingBtn.disabled = false;
+                            });
+                        });
+                    }
 
-            // --- Render Original Photos by Room ---
-            const groupedPhotos = originalPhotos.reduce((acc, photo) => {
-                const room = photo.room || 'Uncategorized';
-                if (!acc[room]) {
-                    acc[room] = [];
-                }
-                acc[room].push(photo);
-                return acc;
-            }, {});
-
-            galleryContainer.innerHTML = '';
-            const roomTabsList = document.getElementById('roomTabs');
-            roomTabsList.innerHTML = '';
-
-            if (Object.keys(groupedPhotos).length === 0 && originalPhotos.length === 0) {
-                galleryContainer.innerHTML = `<p class="text-center text-gray-500 text-lg">No original photos found. Try analyzing photos or adjust your search query.</p>`;
-                // Add an "All" tab even if no photos, but make it inactive.
-                 roomTabsList.innerHTML = `
-                    <li class="me-2" role="presentation">
-                        <button class="inline-block p-4 border-b-2 rounded-t-lg active:text-blue-600 active:border-blue-600 dark:active:text-blue-500 dark:active:border-blue-500" id="all-tab" data-tabs-target="#tab-all" type="button" role="tab" aria-controls="tab-all" aria-selected="true">All</button>
-                    </li>
-                `;
-                return;
-            }
-
-            const tabContentDiv = document.createElement('div');
-            tabContentDiv.id = 'roomTabContent';
-            galleryContainer.appendChild(tabContentDiv);
-
-            // Create 'All' tab
-            let allPhotosHtml = '';
-            const allTabButton = document.createElement('li');
-            allTabButton.className = 'me-2';
-            allTabButton.setAttribute('role', 'presentation');
-            allTabButton.innerHTML = `
-                <button class="inline-block p-4 border-b-2 rounded-t-lg" id="all-tab" data-tabs-target="#tab-all" type="button" role="tab" aria-controls="tab-all" aria-selected="false">All</button>
-            `;
-            roomTabsList.appendChild(allTabButton);
-            const allPhotosGallery = document.createElement('div');
-            allPhotosGallery.id = 'tab-all';
-            allPhotosGallery.setAttribute('role', 'tabpanel');
-            allPhotosGallery.setAttribute('aria-labelledby', 'all-tab');
-            allPhotosGallery.className = 'hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800';
-            const allGrid = document.createElement('div');
-            allGrid.className = 'bento-grid';
-            allPhotosGallery.appendChild(allGrid);
-            tabContentDiv.appendChild(allPhotosGallery);
-
-
-            const roomTabsData = []; // For Flowbite Tabs component
-
-            // Add an 'All' tab
-            roomTabsData.push({
-                id: 'all-tab',
-                triggerEl: allTabButton.querySelector('button'),
-                targetEl: allPhotosGallery,
-            });
-
-
-            for (const room in groupedPhotos) {
-                const roomSlug = room.replace(/\s+/g, '-').toLowerCase();
-
-                // Create Tab Button
-                const tabItem = document.createElement('li');
-                tabItem.className = 'me-2';
-                tabItem.setAttribute('role', 'presentation');
-                tabItem.innerHTML = `
-                    <button class="inline-block p-4 border-b-2 rounded-t-lg" id="${roomSlug}-tab" data-tabs-target="#tab-${roomSlug}" type="button" role="tab" aria-controls="tab-${roomSlug}" aria-selected="false">${room}</button>
-                `;
-                roomTabsList.appendChild(tabItem);
-
-                // Create Tab Content
-                const tabContent = document.createElement('div');
-                tabContent.id = `tab-${roomSlug}`;
-                tabContent.setAttribute('role', 'tabpanel');
-                tabContent.setAttribute('aria-labelledby', `${roomSlug}-tab`);
-                tabContent.className = 'hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800';
-                const roomGrid = document.createElement('div');
-                roomGrid.className = 'bento-grid';
-                tabContent.appendChild(roomGrid);
-                tabContentDiv.appendChild(tabContent);
-
-                roomTabsData.push({
-                    id: `${roomSlug}-tab`,
-                    triggerEl: tabItem.querySelector('button'),
-                    targetEl: tabContent,
-                });
-
-                groupedPhotos[room].forEach(photo => {
-                    const card = createPhotoCard(photo);
-                    roomGrid.appendChild(card.cloneNode(true)); // Add to specific room grid
-                    allGrid.appendChild(card); // Add to 'All' grid
-                });
-            }
-
-            // Initialize Flowbite Tabs after all tabs are added
-            const tabs = new Tabs(roomTabsData, {
-                defaultTabId: 'all-tab', // Set default tab to 'All'
-                activeClasses: 'text-blue-600 hover:text-blue-600 dark:text-blue-500 dark:hover:text-blue-500 border-blue-600 dark:border-blue-500',
-                inactiveClasses: 'text-gray-500 hover:text-gray-600 dark:text-gray-400 border-gray-100 hover:border-gray-300 dark:border-gray-700 dark:hover:text-gray-300',
-            });
-            tabs.show('all-tab', true); // Explicitly show the default tab
-
-            // --- Render Generated Photos ---
-            generatedGalleryContainer.innerHTML = ''; // Clear previous content
-            if (generatedPhotos.length > 0) {
-                noGeneratedImagesPlaceholder.classList.add('hidden');
-                generatedPhotos.forEach(photo => {
-                    const card = createPhotoCard(photo, true); // Pass true for generated image styling
-                    generatedGalleryContainer.appendChild(card);
-                });
-            } else {
-                noGeneratedImagesPlaceholder.classList.remove('hidden');
-            }
-
-            // Add event listeners for image selection for inpainting
-            document.querySelectorAll('.select-image-btn').forEach(button => {
-                button.addEventListener('click', (event) => {
-                    selectedImageUrl = event.target.dataset.imageUrl;
-                    selectedImageKey = event.target.dataset.imageKey;
-                    
-                    // Set modal image and name
-                    modalSelectedImage.src = selectedImageUrl;
-                    modalSelectedImageName.textContent = selectedImageKey.split('/').pop();
-                    
-                    inpaintingModal.show();
-                    showWizardStep(1); // Start at step 1
-                });
-            });
-        }
-
-        // Helper to create a photo card
-        function createPhotoCard(photo, isGenerated = false) {
-            const card = document.createElement('div');
-            card.className = `bento-item ${getRandomBentoSize()}`; // Apply random bento size
-
-            card.innerHTML = `
-                <img class="h-full w-full rounded-lg" src="${photo.publicUrl}" alt="${photo.key}">
-                <div class="bento-item-overlay">
-                    <div class="title">${photo.key.split('/').pop()}</div>
-                    <div class="description">${photo.analysis?.description || 'No description available.'}</div>
-                </div>
-                ${!isGenerated ? `
-                    <button class="select-image-btn absolute bottom-2 left-1/2 -translate-x-1/2 p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300" 
-                            data-image-url="${photo.publicUrl}" data-image-key="${photo.key}"
-                            style="pointer-events: all;"> <!-- Enable click even when overlay is active -->
-                        Select for Inpainting
-                    </button>
-                ` : ''}
-            `;
-
-            // If it's an original image, add a group class for overlay hover effect
-            if (!isGenerated) {
-                card.classList.add('group'); // Add 'group' class for Tailwind group-hover utility
-            } else {
-                // For generated images, perhaps a simple view button or no button
-                // For now, no inpainting button for generated images.
-            }
-            return card;
-        }
-
-        // Function to get random bento box size classes
-        function getRandomBentoSize() {
-            const sizes = ['', 'bento-item-tall', 'bento-item-wide', 'bento-item-large'];
-            return sizes[Math.floor(Math.random() * sizes.length)];
-        }
-
-
-        // Function to load the selected image onto the canvas in the wizard
-        function loadSelectedImageToCanvas(url) {
-            rect = {}; // Clear any previous selection
-            inpaintingPlaceholderWizard.classList.add('hidden');
-            inpaintingCanvasWizard.classList.remove('hidden');
-
-            selectedOriginalImage.onload = () => {
-                const aspectRatio = selectedOriginalImage.width / selectedOriginalImage.height;
-                const containerWidth = inpaintingCanvasWizard.parentElement.clientWidth;
-                let canvasWidth = containerWidth;
-                let canvasHeight = containerWidth / aspectRatio;
-
-                if (canvasHeight > 400) { // Max height for wizard canvas
-                    canvasHeight = 400;
-                    canvasWidth = canvasHeight * aspectRatio;
-                }
-
-                inpaintingCanvasWizard.width = selectedOriginalImage.width;
-                inpaintingCanvasWizard.height = selectedOriginalImage.height;
-
-                inpaintingCanvasWizard.style.width = `${canvasWidth}px`;
-                inpaintingCanvasWizard.style.height = `${canvasHeight}px`;
-
-                ctxWizard.clearRect(0, 0, inpaintingCanvasWizard.width, inpaintingCanvasWizard.height);
-                ctxWizard.drawImage(selectedOriginalImage, 0, 0, inpaintingCanvasWizard.width, inpaintingCanvasWizard.height);
-            };
-            selectedOriginalImage.onerror = () => {
-                console.error('Failed to load image for canvas in wizard:', url);
-                alert('Failed to load image for inpainting. Please try another image.');
-                inpaintingPlaceholderWizard.classList.remove('hidden');
-                inpaintingCanvasWizard.classList.add('hidden');
-            };
-            selectedOriginalImage.src = url;
-        }
-
-        // Canvas drawing logic for selection (Wizard Step 2)
-        inpaintingCanvasWizard.addEventListener('mousedown', (e) => {
-            isDrawing = true;
-            const mouseX = e.offsetX * (inpaintingCanvasWizard.width / inpaintingCanvasWizard.clientWidth);
-            const mouseY = e.offsetY * (inpaintingCanvasWizard.height / inpaintingCanvasWizard.clientHeight);
-            startX = mouseX;
-            startY = mouseY;
-            rect = { x: startX, y: startY, width: 0, height: 0 };
-        });
-
-        inpaintingCanvasWizard.addEventListener('mousemove', (e) => {
-            if (!isDrawing) return;
-            const mouseX = e.offsetX * (inpaintingCanvasWizard.width / inpaintingCanvasWizard.clientWidth);
-            const mouseY = e.offsetY * (inpaintingCanvasWizard.height / inpaintingCanvasWizard.clientHeight);
-            
-            rect.width = mouseX - startX;
-            rect.height = mouseY - startY;
-
-            ctxWizard.clearRect(0, 0, inpaintingCanvasWizard.width, inpaintingCanvasWizard.height);
-            ctxWizard.drawImage(selectedOriginalImage, 0, 0, inpaintingCanvasWizard.width, inpaintingCanvasWizard.height);
-
-            ctxWizard.strokeStyle = '#EF4444'; // Red color
-            ctxWizard.lineWidth = 2;
-            ctxWizard.strokeRect(startX, startY, rect.width, rect.height);
-        });
-
-        inpaintingCanvasWizard.addEventListener('mouseup', () => {
-            isDrawing = false;
-        });
-
-        inpaintingCanvasWizard.addEventListener('mouseout', () => {
-            isDrawing = false;
-        });
-
-
-        // Event listener for Analyze All Photos button
-        analyzePhotosBtn.addEventListener('click', async () => {
-            analyzePhotosBtn.disabled = true;
-            analyzePhotosBtn.textContent = 'Analyzing...';
-            try {
-                const response = await fetch('/api/analyze-photos', { method: 'POST' });
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const result = await response.json();
-                console.log('Analysis result:', result);
-                alert('Analysis complete! Refreshing gallery. Check console for details.');
-                await fetchGalleryData(); // Refresh gallery after analysis
-            } catch (error) {
-                console.error('Error analyzing photos:', error);
-                alert(`Analysis failed: ${error.message}`);
-            } finally {
-                analyzePhotosBtn.disabled = false;
-                analyzePhotosBtn.textContent = 'Analyze All Photos';
-            }
-        });
-
-        // Event listener for Refresh Gallery button
-        refreshGalleryBtn.addEventListener('click', () => fetchGalleryData());
-
-        // Event listener for Search Photos button
-        searchPhotosBtn.addEventListener('click', () => {
-            const query = searchQueryInput.value.trim();
-            fetchGalleryData(query);
-        });
-
-        // Wizard navigation event listeners
-        nextStep2Btn.addEventListener('click', () => {
-            const prompt = inpaintingPromptInput.value.trim();
-            if (!prompt) {
-                alert('Please enter a prompt for inpainting.');
-                return;
-            }
-            showWizardStep(2);
-        });
-        prevStep1Btn.addEventListener('click', () => showWizardStep(1));
-
-        nextStep3Btn.addEventListener('click', async () => {
-            // No need to validate prompt again, it was validated in step 1 transition
-            showWizardStep(3);
-        });
-        prevStep2Btn.addEventListener('click', () => showWizardStep(2));
-        
-        closeModalBtn.addEventListener('click', () => inpaintingModal.hide());
-
-        // Inpainting generation function
-        async function generateInpaintedImage() {
-            inpaintingLoadingSpinner.classList.remove('hidden');
-            inpaintingLoadingText.classList.remove('hidden');
-            inpaintingResultDiv.classList.add('hidden');
-            saveGeneratedImageBtn.classList.add('hidden');
-            currentGeneratedImageUrl = null; // Clear previous generated image URL
-
-            const prompt = inpaintingPromptInput.value.trim();
-
-            try {
-                const response = await fetch('/api/inpainting', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ originalImageUrl: selectedImageUrl, inpaintingPrompt: prompt })
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-                }
-
-                const result = await response.json();
-                if (result.imageUrl) {
-                    generatedImageElem.src = result.imageUrl;
-                    currentGeneratedImageUrl = result.imageUrl; // Store for saving
-                    inpaintingResultDiv.classList.remove('hidden');
-                    saveGeneratedImageBtn.classList.remove('hidden'); // Show save button
-                } else {
-                    alert('No image URL received from DALL-E. Something went wrong.');
-                }
-            } catch (error) {
-                console.error('Error generating inpainting:', error);
-                alert(`Inpainting failed: ${error.message}`);
-            } finally {
-                inpaintingLoadingSpinner.classList.add('hidden');
-                inpaintingLoadingText.classList.add('hidden');
-            }
-        }
-
-        // Save Generated Image button event listener
-        saveGeneratedImageBtn.addEventListener('click', async () => {
-            if (!currentGeneratedImageUrl) {
-                alert('No image to save.');
-                return;
-            }
-
-            saveGeneratedImageBtn.disabled = true;
-            saveGeneratedImageBtn.textContent = 'Saving...';
-
-            try {
-                // Fetch the image data as a Blob
-                const imageResponse = await fetch(currentGeneratedImageUrl);
-                if (!imageResponse.ok) {
-                    throw new Error(`Failed to fetch generated image for saving: ${imageResponse.statusText}`);
-                }
-                const imageBlob = await imageResponse.blob();
-
-                // Read Blob as Data URL (Base64)
-                const reader = new FileReader();
-                reader.readAsDataURL(imageBlob);
-                reader.onloadend = async function() {
-                    const base64data = reader.result; // data:image/png;base64,...
-
-                    const response = await fetch('/api/save-generated-image', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            imageData: base64data,
-                            originalImageKey: selectedImageKey, // For context
-                            promptUsed: inpaintingPromptInput.value.trim(),
-                        })
+                    analyzePhotosBtn.addEventListener('click', async () => {
+                        analyzePhotosBtn.disabled = true;
+                        analyzePhotosBtn.textContent = 'Analyzing...';
+                        try {
+                            const response = await fetch('/api/analyze-photos', { method: 'POST' });
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: \${response.status}`);
+                            }
+                            const result = await response.json();
+                            console.log('Analysis result:', result);
+                            alert('Analysis complete! Refreshing gallery. Check console for details.');
+                            await fetchGalleryData();
+                        } catch (error) {
+                            console.error('Error analyzing photos:', error);
+                            alert(`Analysis failed: \${error.message}`);
+                        } finally {
+                            analyzePhotosBtn.disabled = false;
+                            analyzePhotosBtn.textContent = 'Analyze All Photos';
+                        }
                     });
 
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        throw new Error(`HTTP error saving image! status: ${response.status} - ${errorText}`);
-                    }
+                    refreshGalleryBtn.addEventListener('click', fetchGalleryData);
 
-                    const result = await response.json();
-                    alert('Image saved successfully!');
-                    console.log('Saved image result:', result);
-                    inpaintingModal.hide(); // Close modal after saving
-                    await fetchGalleryData(); // Refresh gallery to show new image
-                }
-            } catch (error) {
-                console.error('Error saving generated image:', error);
-                alert(`Failed to save image: ${error.message}`);
-            } finally {
-                saveGeneratedImageBtn.disabled = false;
-                saveGeneratedImageBtn.textContent = 'Save Image';
-            }
-        });
+                    generateInpaintingBtn.addEventListener('click', async () => {
+                        if (!selectedImageUrl) {
+                            alert('Please select an image first.');
+                            return;
+                        }
+                        const prompt = inpaintingPromptInput.value.trim();
+                        if (!prompt) {
+                            alert('Please enter a prompt for inpainting.');
+                            return;
+                        }
 
+                        generateInpaintingBtn.disabled = true;
+                        generateInpaintingBtn.textContent = 'Generating...';
+                        inpaintingLoading.classList.remove('hidden');
+                        inpaintingResultDiv.classList.add('hidden');
 
-        // Initial fetch when the page loads
-        window.onload = () => fetchGalleryData();
-    </script>
-</body>
-</html>
+                        try {
+                            const response = await fetch('/api/inpainting', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ originalImageUrl: selectedImageUrl, inpaintingPrompt: prompt })
+                            });
+
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                throw new Error(`HTTP error! status: \${response.status} - \${errorText}`);
+                            }
+
+                            const result = await response.json();
+                            if (result.imageUrl) {
+                                generatedImageElem.src = result.imageUrl;
+                                inpaintingResultDiv.classList.remove('hidden');
+                            } else {
+                                alert('No image URL received from DALL-E. Something went wrong.');
+                            }
+                        } catch (error) {
+                            console.error('Error generating inpainting:', error);
+                            alert(`Inpainting failed: \${error.message}`);
+                        } finally {
+                            generateInpaintingBtn.disabled = false;
+                            generateInpaintingBtn.textContent = 'Generate Inpainted Image';
+                            inpaintingLoading.classList.add('hidden');
+                        }
+                    });
+
+                    window.onload = fetchGalleryData;
+                </script>
+            </body>
+            </html>
