@@ -11,3 +11,8 @@ binding = "PHOTO_KV"
 id = "296496ddac3f483b8e5e7850825ceb39"
 
 ai = { binding = "AI" }
+
+
+[site]
+bucket = "./public" # Points to your static frontend files
+entry-point = "worker" # Tells wrangler where your worker.js is relative to the site
