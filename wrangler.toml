@@ -3,11 +3,11 @@ main = "src/worker.js"
 compatibility_date = "2024-01-01"
 
 [[r2_buckets]]
-binding = "PHOTOS_BUCKET"
+binding = "R2_BUCKET" # Changed from PHOTOS_BUCKET
 bucket_name = "reno"
 
 [[kv_namespaces]]
-binding = "PHOTO_KV"
+binding = "PHOTO_METADATA" # Changed from PHOTO_KV
 id = "296496ddac3f483b8e5e7850825ceb39"
 
 ai = { binding = "AI" }
