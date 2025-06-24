@@ -1,13 +1,13 @@
-name = "photo-gallery-app"
+name = "reno-2025"
 main = "src/worker.js"
 compatibility_date = "2024-01-01"
 
 [[r2_buckets]]
 binding = "PHOTOS_BUCKET"
-bucket_name = "photo-gallery-bucket"
+bucket_name = "reno"
 
 [[kv_namespaces]]
 binding = "PHOTO_KV"
-id = "example-kv-id"
+id = "296496ddac3f483b8e5e7850825ceb39"
 
 ai = { binding = "AI" }
