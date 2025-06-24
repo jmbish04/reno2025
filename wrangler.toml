@@ -1,0 +1,13 @@
+name = "photo-gallery-app"
+main = "src/worker.js"
+compatibility_date = "2024-01-01"
+
+[[r2_buckets]]
+binding = "PHOTOS_BUCKET"
+bucket_name = "photo-gallery-bucket"
+
+[[kv_namespaces]]
+binding = "PHOTO_KV"
+id = "example-kv-id"
+
+ai = { binding = "AI" }
