@@ -15,4 +15,4 @@ ai = { binding = "AI" }
 
 [site]
 bucket = "./public" # Points to your static frontend files
-entry-point = "worker" # Tells wrangler where your worker.js is relative to the site
+# entry-point = "worker" # Tells wrangler where your worker.js is relative to the site
